@@ -4,35 +4,33 @@ import CalculatorForm from './components/CalculatorForm';
 import ResultsDisplay from './components/ResultsDisplay';
 import { CalculatorInputs, CalculationResult, ChartDataPoint } from './types';
 import { generateStrategicInsight } from './services/geminiService';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, TrendingUp } from 'lucide-react';
 
 const App: React.FC = () => {
   const [results, setResults] = useState<CalculationResult | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [inputs, setInputs] = useState<CalculatorInputs | null>(null); // Store inputs for the report
+  const [inputs, setInputs] = useState<CalculatorInputs | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleCalculate = async (data: CalculatorInputs) => {
     setLoading(true);
-    setResults(null); // Reset to trigger animation if needed or clear old state
+    setResults(null); 
     setAiInsight(null);
-    setInputs(data); // Save inputs for the report context
+    setInputs(data);
 
-    // Business Logic Constants
+    // Business Logic
     const WEEKS_PER_YEAR = 47;
-    const EFFICIENCY_FACTOR = 0.75; // AI solves 75% of repetitive tasks
+    const EFFICIENCY_FACTOR = 0.75; 
 
-    // Calculations
     const totalRepetitiveHoursPerYear = data.employees * data.hoursRepetitive * WEEKS_PER_YEAR;
     const totalHoursSaved = Math.round(totalRepetitiveHoursPerYear * EFFICIENCY_FACTOR);
     const annualSavings = Math.round(totalHoursSaved * data.hourlyWage);
     const threeYearRoi = annualSavings * 3;
     
-    // Cost Basis Calculation for Chart
     const currentCostRepetitive = totalRepetitiveHoursPerYear * data.hourlyWage;
-    const costWithAi = currentCostRepetitive - annualSavings; // Remaining cost of repetitive tasks
+    const costWithAi = currentCostRepetitive - annualSavings; 
 
     const calculatedResults: CalculationResult = {
       totalHoursSaved,
@@ -43,53 +41,53 @@ const App: React.FC = () => {
     };
 
     const newChartData: ChartDataPoint[] = [
-      { name: 'Coût Actuel', montant: currentCostRepetitive, fill: '#ef4444' }, // Red for cost
-      { name: 'Coût avec IA', montant: costWithAi, fill: '#1a365d' }, // Brand Dark
-      { name: 'Économies', montant: annualSavings, fill: '#38a169' }, // Brand Accent
+      { name: 'Coût Actuel', montant: currentCostRepetitive, fill: '#ef4444' }, // Rouge alerte
+      { name: 'Coût avec IA', montant: costWithAi, fill: '#1e40af' }, // Brand Primary
+      { name: 'Gain Net', montant: annualSavings, fill: '#10b981' }, // Emerald Accent
     ];
 
-    // Artificial delay for UX (0.5s) then set math results
     setTimeout(async () => {
       setResults(calculatedResults);
       setChartData(newChartData);
       
-      // Scroll to results on mobile
-      if (window.innerWidth < 768 && resultsRef.current) {
-        resultsRef.current.scrollIntoView({ behavior: 'smooth' });
+      if (window.innerWidth < 1024 && resultsRef.current) {
+        resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
-      // Fetch AI Insight
       const insight = await generateStrategicInsight(data, calculatedResults);
       setAiInsight(insight);
       setLoading(false);
-    }, 600);
+    }, 800);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-brand-light flex flex-col font-sans">
       <div className="print:hidden">
         <Header />
       </div>
 
-      <main className="flex-grow container mx-auto px-4 py-8 md:py-12">
+      <main className="flex-grow container mx-auto px-4 py-8 md:py-12 max-w-6xl">
         
-        {/* Hero Text - Hidden in Print */}
-        <div className="text-center mb-10 max-w-2xl mx-auto print:hidden">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-brand-dark mb-4">
-            Calculez l'impact de l'IA sur votre rentabilité
+        {/* Hero Section */}
+        <div className="text-center mb-12 max-w-3xl mx-auto print:hidden">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-brand-primary text-xs font-bold uppercase tracking-wider mb-4 border border-blue-100">
+             <TrendingUp size={14} /> Simulateur de Performance
+          </div>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-brand-dark mb-6 leading-tight">
+            Quel est le véritable coût de vos tâches manuelles ?
           </h2>
-          <p className="text-lg text-gray-600">
-            Découvrez combien de temps et d'argent votre entreprise perd sur des tâches répétitives et ce que l'automatisation intelligente peut vous rapporter.
+          <p className="text-lg text-gray-500 leading-relaxed">
+            Estimez instantanément le ROI potentiel de l'intégration de l'IA générative dans vos processus opérationnels.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Form Section - Hidden in Print */}
-          <div className="lg:col-span-5 w-full print:hidden">
+          {/* Form Section */}
+          <div className="lg:col-span-5 w-full print:hidden z-10">
             <CalculatorForm onCalculate={handleCalculate} isLoading={loading} />
           </div>
 
-          {/* Results Section - Full Width in Print */}
+          {/* Results Section */}
           <div className="lg:col-span-7 w-full print:col-span-12 print:w-full" ref={resultsRef}>
             {results && inputs ? (
               <ResultsDisplay 
@@ -100,13 +98,13 @@ const App: React.FC = () => {
                 inputs={inputs}
               />
             ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center h-full flex flex-col justify-center items-center opacity-60 print:hidden">
-                <div className="bg-gray-100 p-4 rounded-full mb-4">
-                   <Sparkles className="h-10 w-10 text-gray-400" />
+              <div className="bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center h-full min-h-[400px] flex flex-col justify-center items-center print:hidden">
+                <div className="bg-white p-6 rounded-full shadow-soft mb-6 animate-float">
+                   <Sparkles className="h-12 w-12 text-brand-primary/40" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-500">En attente de données</h3>
-                <p className="text-gray-400 mt-2 max-w-sm">
-                  Remplissez le formulaire ci-contre pour générer votre projection financière et stratégique.
+                <h3 className="text-xl font-bold text-gray-400 mb-2">En attente de configuration</h3>
+                <p className="text-gray-400 max-w-xs mx-auto text-sm">
+                  Complétez les paramètres à gauche pour générer votre audit financier personnalisé.
                 </p>
               </div>
             )}
@@ -114,13 +112,11 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <footer className="bg-brand-dark text-white py-8 mt-12 print:hidden">
+      <footer className="bg-white border-t border-gray-100 py-8 mt-12 print:hidden">
         <div className="container mx-auto px-4 text-center">
-          <p className="opacity-75 text-sm">
-            © {new Date().getFullYear()} Nexalis Solutions. Tous droits réservés.
-          </p>
-          <p className="opacity-50 text-xs mt-2">
-            Les résultats sont des estimations basées sur les données fournies et des moyennes du secteur.
+          <p className="text-brand-dark font-bold text-sm mb-1">Nexalis Solutions</p>
+          <p className="text-gray-400 text-xs">
+            © {new Date().getFullYear()} - Outil d'aide à la décision. Les résultats sont des estimations.
           </p>
         </div>
       </footer>

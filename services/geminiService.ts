@@ -4,43 +4,43 @@ import { CalculatorInputs, CalculationResult } from "../types";
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
-/**
- * Generates a strategic insight based on the calculated ROI and industry.
- */
 export const generateStrategicInsight = async (
   inputs: CalculatorInputs,
   results: CalculationResult
 ): Promise<string> => {
   if (!apiKey) {
-    return "Configuration de l'API manquante. Veuillez configurer votre clé API pour obtenir des analyses détaillées.";
+    return "Mode démo : Configurez l'API Key pour obtenir une analyse stratégique personnalisée.";
   }
 
   try {
     const prompt = `
-      Tu es un consultant senior en stratégie digitale et intelligence artificielle.
+      Agis comme un Directeur Stratégie Senior chez McKinsey ou BCG.
       
-      Analyse les données suivantes pour une entreprise du secteur "${inputs.industry}" :
-      - Nombre d'employés : ${inputs.employees}
-      - Heures répétitives/semaine/employé : ${inputs.hoursRepetitive}
-      - Économies annuelles potentielles : ${results.annualSavings.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+      CONTEXTE CLIENT :
+      - Secteur : ${inputs.industry}
+      - Effectif : ${inputs.employees} personnes
+      - Gain potentiel identifié : ${results.annualSavings.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} / an
+      - Heures "perdues" récupérables : ${results.totalHoursSaved} h / an
       
-      Rédige un paragraphe court (max 80 mots), percutant et professionnel en français.
-      Explique concrètement comment ces économies ou ce gain de temps peuvent être réinvestis pour créer un avantage compétitif spécifique à l'industrie "${inputs.industry}".
-      Sois direct, évite le jargon générique.
+      OBJECTIF :
+      Rédige un conseil stratégique (max 3 phrases) percutant et visionnaire.
+      Ne dis pas "réinvestir dans la R&D" ou des banalités.
+      Donne un exemple d'avantage compétitif précis que le secteur "${inputs.industry}" peut débloquer avec ce budget ou ce temps (ex: hyper-personnalisation client, réduction du time-to-market, nouveaux services).
+      Ton ton doit être direct, professionnel, orienté ROI. Pas de jargon marketing vide.
     `;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        thinkingConfig: { thinkingBudget: 0 }, // Disable thinking for faster simple response
-        temperature: 0.7,
+        thinkingConfig: { thinkingBudget: 0 },
+        temperature: 0.6,
       }
     });
 
-    return response.text || "Impossible de générer l'analyse pour le moment.";
+    return response.text || "Analyse en cours...";
   } catch (error) {
     console.error("Erreur Gemini:", error);
-    return "Une erreur est survenue lors de la génération de l'analyse stratégique.";
+    return "L'analyse IA n'est pas disponible pour le moment.";
   }
 };

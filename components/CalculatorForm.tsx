@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CalculatorInputs, Industry } from '../types';
-import { Calculator, ArrowRight, Users, Euro, Clock } from 'lucide-react';
+import { Calculator, ArrowRight, Users, Euro, Clock, HelpCircle } from 'lucide-react';
 
 interface Props {
   onCalculate: (data: CalculatorInputs) => void;
@@ -9,9 +9,9 @@ interface Props {
 
 const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
   const [inputs, setInputs] = useState<CalculatorInputs>({
-    employees: 10,
-    hourlyWage: 25,
-    hoursRepetitive: 5,
+    employees: 20,
+    hourlyWage: 35,
+    hoursRepetitive: 8,
     industry: Industry.SERVICES
   });
 
@@ -29,109 +29,120 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 md:p-8 h-full flex flex-col">
-      <div className="mb-6">
+    <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 md:p-8 h-full flex flex-col relative overflow-hidden">
+      {/* Decorative accent */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-brand-accent"></div>
+
+      <div className="mb-8">
         <h2 className="text-2xl font-bold text-brand-dark mb-2 flex items-center gap-2">
-          <Calculator className="h-6 w-6 text-brand-accent" />
-          Vos Données
+          <Calculator className="h-6 w-6 text-brand-primary" />
+          Paramètres de l'étude
         </h2>
-        <p className="text-gray-600 text-sm">Remplissez ce formulaire ou utilisez les curseurs pour estimer votre potentiel.</p>
+        <p className="text-gray-500 text-sm">Ajustez les curseurs pour refléter la réalité de votre structure.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8 flex-grow">
         
         {/* Secteur */}
-        <div>
-          <label htmlFor="industry" className="block text-sm font-bold text-gray-700 mb-2">
+        <div className="space-y-2">
+          <label htmlFor="industry" className="block text-sm font-semibold text-gray-700">
             Secteur d'activité
           </label>
-          <select
-            id="industry"
-            name="industry"
-            value={inputs.industry}
-            onChange={handleChange}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-dark focus:border-brand-dark transition-all bg-gray-50 cursor-pointer"
-          >
-            {Object.values(Industry).map((ind) => (
-              <option key={ind} value={ind}>{ind}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              id="industry"
+              name="industry"
+              value={inputs.industry}
+              onChange={handleChange}
+              className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all cursor-pointer appearance-none font-medium text-gray-700"
+            >
+              {Object.values(Industry).map((ind) => (
+                <option key={ind} value={ind}>{ind}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+              <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+            </div>
+          </div>
         </div>
 
         {/* Employés Slider */}
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <label htmlFor="employees" className="flex items-center gap-2 text-sm font-bold text-gray-700">
-              <Users size={16} className="text-brand-dark" />
-              Nombre d'employés concernés
+        <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="flex justify-between items-center">
+            <label htmlFor="employees" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <Users size={18} className="text-brand-primary" />
+              Effectif concerné
             </label>
-            <span className="text-brand-accent font-bold bg-green-50 px-2 py-1 rounded text-sm">
-              {inputs.employees} pers.
-            </span>
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
+                <input
+                    type="number"
+                    value={inputs.employees}
+                    onChange={handleChange}
+                    name="employees"
+                    className="w-12 text-right font-bold text-brand-dark outline-none border-none p-0 text-sm"
+                />
+                <span className="text-xs text-gray-400 ml-1">pers.</span>
+            </div>
           </div>
           <input
             type="range"
             name="employees"
             min="1"
-            max="200"
+            max="500"
             step="1"
             value={inputs.employees}
             onChange={handleChange}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-accent mb-2"
-          />
-          <input
-            type="number"
-            id="employees"
-            name="employees"
-            min="1"
-            value={inputs.employees}
-            onChange={handleChange}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-dark focus:border-brand-dark transition-all"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
           />
         </div>
 
         {/* Salaire Slider */}
-        <div>
-           <div className="flex justify-between items-center mb-2">
-            <label htmlFor="hourlyWage" className="flex items-center gap-2 text-sm font-bold text-gray-700">
-              <Euro size={16} className="text-brand-dark" />
-              Salaire horaire moyen (chargé)
+        <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+           <div className="flex justify-between items-center">
+            <label htmlFor="hourlyWage" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <Euro size={18} className="text-brand-primary" />
+              Coût horaire moyen (chargé)
             </label>
-            <span className="text-brand-accent font-bold bg-green-50 px-2 py-1 rounded text-sm">
-              {inputs.hourlyWage} €/h
-            </span>
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
+                <input
+                    type="number"
+                    value={inputs.hourlyWage}
+                    onChange={handleChange}
+                    name="hourlyWage"
+                    className="w-12 text-right font-bold text-brand-dark outline-none border-none p-0 text-sm"
+                />
+                <span className="text-xs text-gray-400 ml-1">€/h</span>
+            </div>
           </div>
           <input
             type="range"
             name="hourlyWage"
             min="15"
-            max="150"
+            max="200"
             step="1"
             value={inputs.hourlyWage}
             onChange={handleChange}
-             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-accent mb-2"
-          />
-          <input
-            type="number"
-            id="hourlyWage"
-            name="hourlyWage"
-            min="1"
-            value={inputs.hourlyWage}
-            onChange={handleChange}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-dark focus:border-brand-dark transition-all"
+             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
           />
         </div>
 
         {/* Heures répétitives Slider */}
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <label htmlFor="hoursRepetitive" className="flex items-center gap-2 text-sm font-bold text-gray-700">
-               <Clock size={16} className="text-brand-dark" />
-              Heures répétitives / semaine
+        <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="flex justify-between items-center">
+            <label htmlFor="hoursRepetitive" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+               <Clock size={18} className="text-brand-primary" />
+              Tâches répétitives / semaine
             </label>
-            <span className="text-brand-accent font-bold bg-green-50 px-2 py-1 rounded text-sm">
-              {inputs.hoursRepetitive} h
-            </span>
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
+                <input
+                    type="number"
+                    value={inputs.hoursRepetitive}
+                    onChange={handleChange}
+                    name="hoursRepetitive"
+                    className="w-12 text-right font-bold text-brand-dark outline-none border-none p-0 text-sm"
+                />
+                <span className="text-xs text-gray-400 ml-1">h/pers</span>
+            </div>
           </div>
           <input
             type="range"
@@ -141,32 +152,28 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
             step="0.5"
             value={inputs.hoursRepetitive}
             onChange={handleChange}
-             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-accent mb-2"
+             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
           />
-           <input
-            type="number"
-            id="hoursRepetitive"
-            name="hoursRepetitive"
-            min="0"
-            step="0.5"
-            value={inputs.hoursRepetitive}
-            onChange={handleChange}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-dark focus:border-brand-dark transition-all"
-          />
-          <p className="text-xs text-gray-500 mt-2 italic">
-            Ex: Saisie de données, reporting, emails standards...
-          </p>
+          <div className="flex items-start gap-2 mt-2">
+            <HelpCircle size={14} className="text-gray-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-gray-500 leading-snug">
+              Incluez : Saisie de données, e-mails standards, reporting, copier-coller, recherche d'infos, classement...
+            </p>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full py-4 mt-6 rounded-lg font-bold text-white text-lg shadow-md transition-all flex items-center justify-center gap-2
-            ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-brand-accent hover:bg-green-700 hover:shadow-lg transform hover:-translate-y-0.5'}
+          className={`w-full py-4 mt-6 rounded-xl font-bold text-white text-lg shadow-lg shadow-brand-primary/30 transition-all flex items-center justify-center gap-3
+            ${isLoading ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-brand-primary hover:bg-blue-800 hover:scale-[1.02] active:scale-[0.98]'}
           `}
         >
-          {isLoading ? 'Calcul en cours...' : 'Calculer mon ROI'}
-          {!isLoading && <ArrowRight className="h-5 w-5" />}
+          {isLoading ? (
+             <span className="flex items-center gap-2">Calcul en cours...</span>
+          ) : (
+             <>Calculer l'impact <ArrowRight className="h-5 w-5" /></>
+          )}
         </button>
       </form>
     </div>

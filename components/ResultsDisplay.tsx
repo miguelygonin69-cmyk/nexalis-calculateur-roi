@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CalculationResult, ChartDataPoint, CalculatorInputs } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Clock, TrendingUp, Wallet, Sparkles, CalendarDays, Copy, Check, Download, Loader2, Info } from 'lucide-react';
+import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target } from 'lucide-react';
 
 interface Props {
   results: CalculationResult;
@@ -15,6 +15,9 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   const [copied, setCopied] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
+  // Perte mensuelle (Coût de l'inaction)
+  const monthlyLoss = Math.round(results.currentCost / 12);
+
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
 
@@ -24,56 +27,35 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   const handleDownloadPDF = async () => {
     setIsGeneratingPdf(true);
     
-    // 1. Cibler l'élément source original
     const originalElement = document.getElementById('results-container');
-    if (!originalElement) {
-        setIsGeneratingPdf(false);
-        return;
-    }
+    if (!originalElement) { setIsGeneratingPdf(false); return; }
 
-    // 2. Créer un clone profond pour ne PAS perturber l'affichage actuel (évite les bugs Recharts/React)
     const clone = originalElement.cloneNode(true) as HTMLElement;
-
-    // 3. Manipuler uniquement le clone (Nettoyage)
-    
-    // Supprimer la barre d'outils du clone
     const toolbar = clone.querySelector('#action-toolbar');
     if (toolbar) toolbar.remove();
-
-    // Supprimer le CTA du clone
     const cta = clone.querySelector('#cta-section');
     if (cta) cta.remove();
 
-    // Afficher l'en-tête dans le clone (il a la classe 'hidden' par défaut)
     const header = clone.querySelector('#report-header');
     if (header) {
       header.classList.remove('hidden');
-      header.classList.remove('print:block'); // Sécurité
       header.classList.add('block');
     }
 
-    // 4. Créer un conteneur temporaire hors écran avec une largeur fixe (simule un écran de bureau/A4)
-    // Cela garantit que le PDF a toujours la même mise en page, même généré depuis un mobile.
     const wrapper = document.createElement('div');
     wrapper.style.position = 'absolute';
     wrapper.style.top = '-9999px';
     wrapper.style.left = '-9999px';
-    wrapper.style.width = '800px'; // Largeur fixe idéale pour A4
-    wrapper.style.backgroundColor = '#ffffff'; // Fond blanc forcé
+    wrapper.style.width = '800px'; 
+    wrapper.style.backgroundColor = '#ffffff';
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
 
-    // 5. Configuration de html2pdf
     const opt = {
       margin: [10, 10, 10, 10],
-      filename: `Rapport-ROI-Nexalis-${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
+      filename: `Nexalis_Audit_ROI_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        logging: false, // DÉSACTIVER les logs dans la console
-        windowWidth: 800 // Simule une fenêtre de 800px pour le rendu
-      },
+      html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 800 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
@@ -82,143 +64,146 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       await window.html2pdf().set(opt).from(clone).save();
     } catch (error) {
       console.error("Erreur PDF:", error);
-      alert("Une erreur est survenue lors de la création du PDF.");
     } finally {
-      // 6. Nettoyage
       document.body.removeChild(wrapper);
       setIsGeneratingPdf(false);
     }
   };
 
   const handleCopy = () => {
-    const text = `
-Rapport ROI - Nexalis Solutions
--------------------------------
-Secteur: ${inputs.industry}
-Employés: ${inputs.employees}
-
-RÉSULTATS:
-- Heures économisées/an: ${formatNumber(results.totalHoursSaved)} h
-- Économies annuelles: ${formatCurrency(results.annualSavings)}
-- Gain sur 3 ans: ${formatCurrency(results.threeYearRoi)}
-
-ANALYSE IA:
-${aiInsight || 'Analyse en cours...'}
-    `.trim();
-
+    const text = `Rapport ROI Nexalis Solutions\nSecteur: ${inputs.industry}\nGain annuel estimé: ${formatCurrency(results.annualSavings)}\nAnalyse: ${aiInsight}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const currentDate = new Date().toLocaleDateString('fr-FR', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
-
   return (
-    <div id="results-container" className="space-y-6 animate-fade-in print:space-y-4 bg-white p-2 md:p-0">
+    <div id="results-container" className="space-y-6 animate-fade-in bg-white md:bg-transparent">
       
-      {/* --- Action Toolbar --- */}
-      <div id="action-toolbar" className="flex flex-wrap justify-end gap-3 print:hidden mb-2">
-        <button 
-          onClick={handleCopy}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-brand-dark transition-colors shadow-sm"
-        >
+      {/* Actions */}
+      <div id="action-toolbar" className="flex justify-end gap-3 print:hidden mb-2">
+        <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
           {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-          {copied ? 'Copié !' : 'Copier le résumé'}
+          {copied ? 'Copié' : 'Copier'}
         </button>
-        <button 
-          onClick={handleDownloadPDF}
-          disabled={isGeneratingPdf}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-brand-dark rounded-lg hover:bg-blue-900 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-wait"
-        >
+        <button onClick={handleDownloadPDF} disabled={isGeneratingPdf} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-dark rounded-lg hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-70">
           {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-          {isGeneratingPdf ? 'Génération...' : 'Télécharger le PDF'}
+          Exporter PDF
         </button>
       </div>
 
-      {/* --- REPORT HEADER (Visible ONLY during PDF Gen or Print) --- */}
-      <div id="report-header" className="hidden print:block border-b-2 border-brand-dark pb-6 mb-8">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
-             <div className="p-1">
-                <Sparkles className="h-8 w-8 text-yellow-400 fill-yellow-400" />
-              </div>
-            <div>
-              <h1 className="text-2xl font-bold text-brand-dark uppercase tracking-tight">Nexalis Solutions</h1>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Conseil en Stratégie & Performance IA</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <h2 className="text-xl font-bold text-gray-800">RAPPORT D'ANALYSE D'OPPORTUNITÉ</h2>
-            <p className="text-sm text-gray-500 mt-1">Généré le {currentDate}</p>
-          </div>
+      {/* Header PDF Only */}
+      <div id="report-header" className="hidden mb-8 border-b-2 border-brand-primary pb-4">
+        <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-brand-dark">Nexalis Solutions</h1>
+            <span className="text-sm text-gray-500">Rapport d'opportunité IA</span>
         </div>
-        
-        <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-100 flex gap-8 text-sm">
-           <div>
-             <span className="block text-gray-500 font-semibold uppercase text-xs">Secteur</span>
-             <span className="font-bold text-gray-800">{inputs.industry}</span>
-           </div>
-           <div>
-             <span className="block text-gray-500 font-semibold uppercase text-xs">Périmètre</span>
-             <span className="font-bold text-gray-800">{inputs.employees} collaborateurs</span>
-           </div>
-           <div>
-             <span className="block text-gray-500 font-semibold uppercase text-xs">Salaire Moyen</span>
-             <span className="font-bold text-gray-800">{inputs.hourlyWage}€ /heure</span>
-           </div>
+        <div className="mt-4 text-sm text-gray-600">
+            Audit généré le {new Date().toLocaleDateString('fr-FR')} pour une entreprise du secteur <b>{inputs.industry}</b> ({inputs.employees} employés).
         </div>
       </div>
 
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:gap-6">
-        <div className="bg-white p-5 rounded-xl shadow-md border-l-4 border-brand-dark print:border border-gray-200 print:shadow-none">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-blue-100 p-2 rounded-full print:bg-transparent print:p-0">
-              <Clock className="h-5 w-5 text-brand-dark" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-600 uppercase">Heures Économisées / An</h3>
-          </div>
-          <p className="text-3xl font-bold text-brand-dark">{formatNumber(results.totalHoursSaved)} h</p>
+      {/* Warning: Cost of Inaction (Psychological Trigger) */}
+      <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-start gap-4 shadow-sm">
+        <div className="bg-orange-100 p-2 rounded-lg shrink-0">
+             <AlertTriangle className="text-orange-600 h-6 w-6" />
         </div>
-
-        <div className="bg-white p-5 rounded-xl shadow-md border-l-4 border-brand-accent print:border border-gray-200 print:shadow-none">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-green-100 p-2 rounded-full print:bg-transparent print:p-0">
-              <Wallet className="h-5 w-5 text-brand-accent" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-600 uppercase">Économies Annuelles</h3>
-          </div>
-          <p className="text-3xl font-bold text-brand-accent">{formatCurrency(results.annualSavings)}</p>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl shadow-md border-l-4 border-indigo-500 print:border border-gray-200 print:shadow-none">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-indigo-100 p-2 rounded-full print:bg-transparent print:p-0">
-              <TrendingUp className="h-5 w-5 text-indigo-600" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-600 uppercase">Projection sur 3 ans</h3>
-          </div>
-          <p className="text-3xl font-bold text-indigo-600">{formatCurrency(results.threeYearRoi)}</p>
+        <div>
+            <h4 className="font-bold text-orange-900 text-sm uppercase tracking-wide mb-1">Coût de l'inaction</h4>
+            <p className="text-orange-800 text-sm leading-relaxed">
+                Sans modernisation, vos processus actuels vous coûtent environ <span className="font-bold underline decoration-orange-300 decoration-2">{formatCurrency(monthlyLoss)} chaque mois</span>.
+            </p>
         </div>
       </div>
 
-      {/* Chart Section */}
-      <div className="bg-white p-6 rounded-xl shadow-md print:shadow-none print:border print:border-gray-200 print:break-inside-avoid">
-        <h3 className="text-lg font-bold text-brand-dark mb-6">Comparatif des Coûts & Gains</h3>
+      {/* Main Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1 */}
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-full">
+            <div className="flex items-start justify-between mb-4">
+                <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Productivité</p>
+                    <p className="text-2xl font-extrabold text-brand-dark mt-1">{formatNumber(results.totalHoursSaved)} h</p>
+                </div>
+                <div className="bg-blue-50 p-2 rounded-lg">
+                    <Clock className="h-5 w-5 text-brand-primary" />
+                </div>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                <div className="bg-brand-primary h-1.5 rounded-full" style={{ width: '75%' }}></div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Heures réallouables / an</p>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 ring-2 ring-brand-accent/10 flex flex-col justify-between h-full relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-brand-accent/10 rounded-bl-full -mr-4 -mt-4"></div>
+            <div className="flex items-start justify-between mb-4 relative z-10">
+                <div>
+                    <p className="text-xs font-bold text-brand-accent uppercase tracking-wider">Économie Nette</p>
+                    <p className="text-2xl font-extrabold text-brand-accent mt-1">{formatCurrency(results.annualSavings)}</p>
+                </div>
+                <div className="bg-green-50 p-2 rounded-lg">
+                    <Wallet className="h-5 w-5 text-brand-accent" />
+                </div>
+            </div>
+             <p className="text-xs text-green-700/80 mt-auto bg-green-50 inline-block px-2 py-1 rounded font-medium self-start">
+                + Impact marge immédiat
+            </p>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-full">
+             <div className="flex items-start justify-between mb-4">
+                <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Projection 3 Ans</p>
+                    <p className="text-2xl font-extrabold text-brand-dark mt-1">{formatCurrency(results.threeYearRoi)}</p>
+                </div>
+                <div className="bg-indigo-50 p-2 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-indigo-600" />
+                </div>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '100%' }}></div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Cumul des gains bruts</p>
+        </div>
+      </div>
+
+      {/* AI Analysis - Professional Note Style */}
+      <div className="bg-brand-dark rounded-2xl p-6 shadow-card text-white relative overflow-hidden print:bg-white print:text-black print:border print:border-gray-200">
+         {/* Background decoration */}
+         <div className="absolute -right-10 -top-10 bg-white/5 w-40 h-40 rounded-full blur-3xl"></div>
+         
+         <div className="relative z-10">
+            <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest">
+                <Sparkles size={14} /> Recommandation Stratégique
+            </h3>
+            
+            <div className="font-serif italic text-lg leading-relaxed text-gray-100 print:text-gray-800 border-l-4 border-brand-accent pl-4">
+                {isAiLoading ? (
+                    <span className="animate-pulse">Analyse de vos données en cours par nos modèles...</span>
+                ) : (
+                    aiInsight || "Génération de l'analyse..."
+                )}
+            </div>
+         </div>
+      </div>
+
+      {/* Chart */}
+      <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid">
+        <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
+            <Target size={18} className="text-brand-primary" />
+            Visualisation de l'impact financier
+        </h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={(val) => `${val / 1000}k€`} axisLine={false} tickLine={false} />
-              <Tooltip 
-                cursor={{ fill: '#f7fafc' }}
-                formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Bar dataKey="montant" radius={[6, 6, 0, 0]} barSize={50}>
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barSize={40}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
+              <YAxis tickFormatter={(val) => `${val / 1000}k`} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+              <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(val: number) => formatCurrency(val)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+              <Bar dataKey="montant" radius={[4, 4, 0, 0]}>
                  {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
@@ -228,73 +213,14 @@ ${aiInsight || 'Analyse en cours...'}
         </div>
       </div>
 
-      {/* AI Insight Section */}
-      <div className="bg-gradient-to-r from-brand-dark to-blue-900 rounded-xl shadow-lg p-6 text-white relative overflow-hidden print:bg-none print:bg-white print:text-black print:border print:border-gray-300 print:shadow-none print:break-inside-avoid">
-        <div className="absolute top-0 right-0 p-4 opacity-10 print:hidden">
-          <Sparkles size={120} />
-        </div>
-        
-        <div className="relative z-10">
-          <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-brand-accent print:text-brand-dark">
-            <Sparkles className="h-5 w-5" />
-            Analyse Stratégique IA
-          </h3>
-          
-          <div className="text-sm md:text-base leading-relaxed text-gray-100 min-h-[80px] print:text-gray-800">
-            {isAiLoading ? (
-              <div className="flex items-center gap-3 animate-pulse">
-                <div className="h-2 w-2 bg-white rounded-full animate-bounce print:bg-gray-400" style={{ animationDelay: '0ms'}}></div>
-                <div className="h-2 w-2 bg-white rounded-full animate-bounce print:bg-gray-400" style={{ animationDelay: '150ms'}}></div>
-                <div className="h-2 w-2 bg-white rounded-full animate-bounce print:bg-gray-400" style={{ animationDelay: '300ms'}}></div>
-                <span className="text-gray-300 italic print:text-gray-500">Notre IA analyse votre potentiel...</span>
-              </div>
-            ) : aiInsight ? (
-              <p>"{aiInsight}"</p>
-            ) : (
-              <p className="italic opacity-80">Lancez le calcul pour obtenir une analyse personnalisée.</p>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Methodology Section (Trust Builder) */}
-      <div className="mt-8 pt-6 border-t border-gray-200 text-sm text-gray-500 print:break-inside-avoid">
-        <h4 className="flex items-center gap-2 font-semibold text-gray-700 mb-2">
-            <Info size={16} />
-            Méthodologie & Hypothèses de calcul
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-            <div>
-                <p className="mb-1"><span className="font-medium text-gray-700">Base annuelle :</span> 47 semaines travaillées (hors congés payés).</p>
-                <p><span className="font-medium text-gray-700">Coût employeur :</span> Basé sur le salaire horaire chargé saisi.</p>
-            </div>
-            <div>
-                <p className="mb-1"><span className="font-medium text-gray-700">Facteur d'efficacité IA :</span> 75% de réduction du temps sur les tâches identifiées comme répétitives.</p>
-                <p><span className="font-medium text-gray-700">ROI 3 ans :</span> Projection linéaire sans ajustement d'inflation.</p>
-            </div>
-        </div>
-      </div>
-
-      {/* CTA Section - Hidden in Print or PDF */}
-      <div id="cta-section" className="text-center pt-8 print:hidden">
-        <a 
-          href="https://calendly.com" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 bg-brand-accent hover:bg-green-700 text-white font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-lg"
-        >
-          <CalendarDays className="h-6 w-6" />
-          Réserver un appel découverte
+      {/* Call to Action */}
+      <div id="cta-section" className="mt-8 text-center bg-brand-primary/5 rounded-xl p-8 border border-brand-primary/10 print:hidden">
+        <h4 className="font-bold text-brand-dark text-lg mb-2">Transformez ce potentiel en réalité</h4>
+        <p className="text-gray-600 mb-6 max-w-lg mx-auto">Ces chiffres sont théoriques. Pour une analyse fine de vos process et une feuille de route d'implémentation, parlons-en.</p>
+        <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-dark text-white font-semibold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
+            Réserver un audit flash offert (15 min)
         </a>
-        <p className="text-gray-500 text-sm mt-3">Discutons de vos résultats et de la mise en œuvre.</p>
       </div>
-
-       {/* Footer for Print Only */}
-       <div className="hidden print:block text-center mt-12 pt-8 border-t border-gray-200 text-xs text-gray-500">
-          <p>Nexalis Solutions - contact@nexalis-solutions.com - 07 44 88 06 10</p>
-          <p>Document généré automatiquement à titre indicatif.</p>
-       </div>
-
     </div>
   );
 };
