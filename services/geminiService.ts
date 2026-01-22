@@ -1,22 +1,25 @@
 import { GoogleGenAI } from "@google/genai";
 import { CalculatorInputs, CalculationResult } from "../types";
 
-// Note: Dans un vrai projet Vite, on utiliserait import.meta.env.VITE_API_KEY
-// Mais selon les directives strictes, nous utilisons process.env.API_KEY
-const apiKey = process.env.API_KEY || ''; 
-const ai = new GoogleGenAI({ apiKey });
+// Déclaration TypeScript pour process.env
+declare const process: { env: { API_KEY?: string } };
 
 export const generateStrategicInsight = async (
   inputs: CalculatorInputs,
   results: CalculationResult
 ): Promise<string> => {
-  // Vérification basique de la clé
+  const apiKey = process.env.API_KEY || '';
+  
+  // Vérification de la clé
   if (!apiKey) {
-    console.warn("Clé API manquante. Assurez-vous d'avoir défini process.env.API_KEY");
+    console.warn("Clé API manquante");
     return "Configuration requise : La clé API n'est pas détectée. Veuillez configurer votre environnement.";
   }
 
   try {
+    // Initialisation SEULEMENT quand on appelle la fonction
+    const ai = new GoogleGenAI({ apiKey });
+    
     const prompt = `
       Agis comme un Directeur Stratégie Senior chez McKinsey ou BCG.
       
@@ -48,9 +51,8 @@ export const generateStrategicInsight = async (
       Longueur : 300-400 mots maximum.
     `;
 
-    // Appel direct à l'API Gemini depuis le navigateur
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp', // Utilisation du modèle rapide et performant
+      model: 'gemini-2.0-flash-exp',
       contents: prompt,
       config: {
         temperature: 0.7,
