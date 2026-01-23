@@ -13,7 +13,6 @@ interface Props {
 
 const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLoading, inputs }) => {
   const [copied, setCopied] = useState(false);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // Perte mensuelle (Coût de l'inaction)
   const monthlyLoss = Math.round(results.currentCost / 12);
@@ -42,125 +41,36 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     });
   };
 
-  const handleDownloadPDF = async () => {
-    setIsGeneratingPdf(true);
+  const handleDownloadPDF = () => {
+    // Préparer l'affichage pour l'impression
+    const toolbar = document.getElementById('action-toolbar');
+    const cta = document.getElementById('cta-section');
+    const header = document.getElementById('report-header');
     
-    const originalElement = document.getElementById('results-container');
-    if (!originalElement) { 
-      setIsGeneratingPdf(false); 
-      return; 
-    }
-
-    const A4_WIDTH_PX = 794; 
+    // Cacher les éléments non-nécessaires
+    if (toolbar) toolbar.style.display = 'none';
+    if (cta) cta.style.display = 'none';
     
-    window.scrollTo(0, 0);
-
-    // Conteneur temporaire pour le PDF
-    const overlay = document.createElement('div');
-    overlay.style.position = 'absolute'; 
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = `${A4_WIDTH_PX}px`; 
-    overlay.style.zIndex = '9999';
-    overlay.style.backgroundColor = '#ffffff';
-    overlay.style.padding = '40px'; 
-    overlay.style.boxSizing = 'border-box';
-    overlay.className = 'font-sans text-slate-900'; 
-
-    // Clonage
-    const clone = originalElement.cloneNode(true) as HTMLElement;
-    
-    // Nettoyage
-    clone.classList.remove('animate-fade-in');
-    clone.style.animation = 'none';
-    clone.style.width = '100%';
-    clone.style.margin = '0';
-    clone.style.boxShadow = 'none';
-    
-    // CORRECTION LAYOUT : Forcer grille 3 colonnes
-    const grids = clone.querySelectorAll('.md\\:grid-cols-3');
-    grids.forEach(el => {
-      (el as HTMLElement).classList.remove('md:grid-cols-3', 'grid-cols-1');
-      (el as HTMLElement).classList.add('grid-cols-3');
-    });
-
-    // Retrait toolbar et CTA
-    const toolbar = clone.querySelector('#action-toolbar');
-    if (toolbar) toolbar.remove();
-    const cta = clone.querySelector('#cta-section');
-    if (cta) cta.remove();
-
-    // AFFICHER le header (qui est hidden par défaut)
-    const header = clone.querySelector('#report-header');
+    // Afficher le header PDF
     if (header) {
-      (header as HTMLElement).classList.remove('hidden');
-      (header as HTMLElement).classList.add('block');
-      (header as HTMLElement).style.display = 'block';
+      header.classList.remove('hidden');
+      header.style.display = 'block';
     }
-
-    // Conversion zone sombre pour PDF (économie encre)
-    const darkBg = clone.querySelector('.bg-brand-dark');
-    if (darkBg) {
-      (darkBg as HTMLElement).classList.remove('text-white', 'bg-brand-dark');
-      (darkBg as HTMLElement).classList.add('text-slate-900', 'bg-white', 'border', 'border-gray-200');
-      const lightTexts = darkBg.querySelectorAll('.text-gray-100');
-      lightTexts.forEach(t => {
-        (t as HTMLElement).classList.remove('text-gray-100');
-        (t as HTMLElement).classList.add('text-slate-700');
-      });
-    }
-
-    overlay.appendChild(clone);
-    document.body.appendChild(overlay);
-
-    // Feedback visuel
-    const feedback = document.createElement('div');
-    feedback.innerText = "📄 Génération du rapport PDF en cours...";
-    feedback.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #1a365d;
-      color: white;
-      padding: 20px 40px;
-      border-radius: 12px;
-      z-index: 10001;
-      font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    `;
-    document.body.appendChild(feedback);
-
-    // Pause pour permettre le rendu complet
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `Nexalis_Audit_ROI_${inputs.industry}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        logging: false,
-        windowWidth: A4_WIDTH_PX,
-        width: A4_WIDTH_PX,
-        backgroundColor: '#ffffff'
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    try {
-      // @ts-ignore
-      await window.html2pdf().set(opt).from(overlay).save();
-    } catch (error) {
-      console.error("Erreur PDF:", error);
-      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
-    } finally {
-      if (document.body.contains(overlay)) document.body.removeChild(overlay);
-      if (document.body.contains(feedback)) document.body.removeChild(feedback);
-      setIsGeneratingPdf(false);
-    }
+    
+    // Lancer l'impression (l'utilisateur peut choisir "Enregistrer en PDF")
+    setTimeout(() => {
+      window.print();
+      
+      // Remettre l'affichage normal après impression
+      setTimeout(() => {
+        if (toolbar) toolbar.style.display = 'flex';
+        if (cta) cta.style.display = 'block';
+        if (header) {
+          header.classList.add('hidden');
+          header.style.display = 'none';
+        }
+      }, 500);
+    }, 100);
   };
 
   const handleCopy = () => {
@@ -179,9 +89,9 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
           {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
           {copied ? 'Copié' : 'Copier'}
         </button>
-        <button onClick={handleDownloadPDF} disabled={isGeneratingPdf} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-dark rounded-lg hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-70">
-          {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-          {isGeneratingPdf ? 'Export PDF...' : 'Exporter PDF'}
+        <button onClick={handleDownloadPDF} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-dark rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+          <Download size={16} />
+          Exporter PDF
         </button>
       </div>
 
@@ -260,63 +170,4 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
                 </div>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
-                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '100%' }}></div>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">Estimation du ROI sur 3 ans</p>
-        </div>
-      </div>
-
-      {/* AI Analysis */}
-      <div className="bg-brand-dark rounded-2xl p-6 shadow-card text-white relative overflow-hidden print:bg-white print:text-black print:border print:border-gray-200">
-         <div className="absolute -right-10 -top-10 bg-white/5 w-40 h-40 rounded-full blur-3xl"></div>
-         <div className="relative z-10">
-            <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest">
-                <Sparkles size={14} className="text-brand-accent" /> Recommandation Stratégique
-            </h3>
-            <div className="text-sm md:text-base leading-relaxed text-gray-100 print:text-gray-800 border-l-4 border-brand-accent pl-4">
-                {isAiLoading ? (
-                    <span className="animate-pulse italic">Analyse de vos données en cours par nos modèles...</span>
-                ) : (
-                    renderStructuredAnalysis(aiInsight || "") || "Génération de l'analyse..."
-                )}
-            </div>
-         </div>
-      </div>
-
-      {/* Chart */}
-      <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid">
-        <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
-            <Target size={18} className="text-brand-dark" />
-            Comparatif des coûts & gains
-        </h3>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barSize={40}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
-              <YAxis tickFormatter={(val) => `${val / 1000}k`} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-              <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(val: number) => formatCurrency(val)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-              <Bar dataKey="montant" radius={[4, 4, 0, 0]}>
-                 {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Call to Action */}
-      <div id="cta-section" className="mt-8 text-center bg-brand-accent/5 rounded-xl p-8 border border-brand-accent/10 print:hidden">
-        <h4 className="font-bold text-brand-dark text-lg mb-2">Transformez ce potentiel en réalité</h4>
-        <p className="text-gray-600 mb-6 max-w-lg mx-auto">Ces chiffres sont théoriques. Pour une analyse fine de vos process et une feuille de route d'implémentation, parlons-en.</p>
-        <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-accent hover:bg-emerald-600 text-white font-semibold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
-            <Calendar size={18} />
-            Réserver un appel découverte
-        </a>
-      </div>
-    </div>
-  );
-};
-
-export default ResultsDisplay;
+                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ widt
