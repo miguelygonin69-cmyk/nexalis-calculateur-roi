@@ -50,42 +50,38 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     }
 
     // 1. Préparation de l'environnement
-    // On remonte tout en haut pour éviter les bugs de "partie blanche" en haut du PDF
     window.scrollTo(0, 0);
-
-    // Largeur A4 standard en pixels pour le web (96 DPI)
-    // 210mm ~= 794px. On fixe cette largeur pour que le rendu soit prédictible.
     const A4_WIDTH_PX = 794; 
 
     // 2. Création du conteneur d'impression
-    // Il doit être en absolute top:0 left:0 pour que html2canvas capture les bonnes coordonnées
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.top = '0';
     container.style.left = '0';
     container.style.width = `${A4_WIDTH_PX}px`;
-    container.style.zIndex = '9999'; // Par dessus tout
+    container.style.zIndex = '9999';
     container.style.backgroundColor = '#ffffff';
-    container.style.padding = '40px'; // Marges internes du papier
+    container.style.padding = '20px'; // Marges internes réduites pour laisser html2pdf gérer les marges
     container.style.boxSizing = 'border-box';
 
-    // 3. Clonage du contenu
+    // 3. Clonage et nettoyage
     const clone = originalElement.cloneNode(true) as HTMLElement;
     
-    // Nettoyage des styles qui gênent l'impression
     clone.classList.remove('animate-fade-in', 'md:bg-transparent');
     clone.style.width = '100%';
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
     
-    // 4. Forçage du Layout Desktop (Grid 3 colonnes)
-    // On s'assure que même sur un petit écran, le PDF sera généré comme sur un grand écran
+    // IMPORTANT : On retire les contraintes de hauteur qui créent des vides
+    clone.style.height = 'auto'; 
+    clone.querySelectorAll('.h-full').forEach(el => (el as HTMLElement).style.height = 'auto');
+    clone.querySelectorAll('.min-h-screen').forEach(el => (el as HTMLElement).style.minHeight = '0');
+    
+    // 4. Forçage du Layout Desktop
     const grids = clone.querySelectorAll('.grid');
     grids.forEach(el => {
       const element = el as HTMLElement;
-      // On retire les classes responsives
       element.classList.remove('md:grid-cols-3', 'lg:grid-cols-12', 'grid-cols-1');
-      // On force la grille selon le contexte (3 colonnes pour les stats)
       if (element.classList.contains('gap-4')) {
           element.style.display = 'grid';
           element.style.gridTemplateColumns = 'repeat(3, 1fr)';
@@ -93,18 +89,18 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       }
     });
 
-    // Masquage des éléments interactifs
+    // Masquage UI
     clone.querySelector('#action-toolbar')?.remove();
     clone.querySelector('#cta-section')?.remove();
 
-    // Affichage du Header spécifique PDF
+    // Header PDF
     const header = clone.querySelector('#report-header');
     if (header) {
       (header as HTMLElement).classList.remove('hidden');
       (header as HTMLElement).style.display = 'block';
     }
 
-    // Adaptation des couleurs (Fond sombre -> Fond clair pour économie d'encre)
+    // Couleurs d'impression
     const darkBg = clone.querySelector('.bg-brand-dark');
     if (darkBg) {
       (darkBg as HTMLElement).classList.remove('text-white', 'bg-brand-dark');
@@ -113,22 +109,19 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         (t as HTMLElement).classList.remove('text-gray-100');
         (t as HTMLElement).classList.add('text-slate-700');
       });
-      // La petite lueur décorative
       const blurEffect = darkBg.querySelector('.blur-3xl');
       if (blurEffect) blurEffect.remove();
     }
 
-    // Ajustement hauteur graphique
+    // Graphique
     const chartContainer = clone.querySelector('.h-64');
     if (chartContainer) {
       (chartContainer as HTMLElement).style.height = '250px';
     }
 
-    // Injection dans le DOM
     container.appendChild(clone);
     document.body.appendChild(container);
 
-    // Feedback utilisateur
     const feedback = document.createElement('div');
     feedback.innerText = "Génération du PDF...";
     feedback.style.position = 'fixed';
@@ -142,26 +135,27 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     feedback.style.zIndex = '10000';
     document.body.appendChild(feedback);
 
-    // Petite pause pour laisser le DOM se rendre (essentiel pour les graphiques)
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // 5. Configuration html2pdf
+    // 5. Configuration html2pdf optimisée
     const opt = {
-      margin: 0, // Les marges sont gérées par le padding du container
+      margin: [10, 10, 10, 10], // Marges [Haut, Droite, Bas, Gauche] en mm
       filename: `Nexalis_Audit_${inputs.industry.replace(/\s+/g, '_')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2, // Meilleure résolution
+        scale: 2, 
         useCORS: true, 
-        scrollY: 0, // Important : force le moteur à commencer en haut
-        windowWidth: A4_WIDTH_PX, // Simule une fenêtre de la bonne largeur
+        scrollY: 0,
+        windowWidth: A4_WIDTH_PX,
         width: A4_WIDTH_PX
       },
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
         orientation: 'portrait' 
-      }
+      },
+      // C'est cette option qui empêche de couper les éléments et évite les pages blanches inutiles
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     try {
@@ -170,7 +164,6 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     } catch (error) {
       console.error("Erreur PDF:", error);
     } finally {
-      // Nettoyage
       if (document.body.contains(container)) document.body.removeChild(container);
       if (document.body.contains(feedback)) document.body.removeChild(feedback);
       setIsGeneratingPdf(false);
@@ -211,7 +204,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         </div>
       </div>
 
-      <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-start gap-4 shadow-sm">
+      <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-start gap-4 shadow-sm break-inside-avoid">
         <div className="bg-orange-100 p-2 rounded-lg shrink-0">
              <AlertTriangle className="text-orange-600 h-6 w-6" />
         </div>
@@ -223,8 +216,8 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 break-inside-avoid">
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-auto">
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Productivité</p>
@@ -240,7 +233,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
             <p className="text-xs text-gray-400 mt-2">Heures économisées / an</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 ring-2 ring-brand-accent/10 flex flex-col justify-between h-full relative overflow-hidden">
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 ring-2 ring-brand-accent/10 flex flex-col justify-between h-auto relative overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-brand-accent/10 rounded-bl-full -mr-4 -mt-4"></div>
             <div className="flex items-start justify-between mb-4 relative z-10">
                 <div>
@@ -256,7 +249,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
             </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-full">
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-auto">
              <div className="flex items-start justify-between mb-4">
                 <div>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">ROI 3 Ans</p>
@@ -273,7 +266,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         </div>
       </div>
 
-      <div className="bg-brand-dark rounded-2xl p-6 shadow-card text-white relative overflow-hidden print:bg-gray-50 print:text-black print:border print:border-gray-300">
+      <div className="bg-brand-dark rounded-2xl p-6 shadow-card text-white relative overflow-hidden print:bg-gray-50 print:text-black print:border print:border-gray-300 break-inside-avoid">
          <div className="absolute -right-10 -top-10 bg-white/5 w-40 h-40 rounded-full blur-3xl print:hidden"></div>
          <div className="relative z-10">
             <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest print:text-brand-dark">
@@ -289,7 +282,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
          </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid no-break">
+      <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid break-inside-avoid">
         <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
             <Target size={18} className="text-brand-dark" />
             Comparatif des coûts & gains

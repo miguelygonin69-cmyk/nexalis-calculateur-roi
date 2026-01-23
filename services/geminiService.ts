@@ -1,62 +1,62 @@
+import { GoogleGenAI } from "@google/genai";
 import { CalculatorInputs, CalculationResult } from "../types";
+
+const apiKey = process.env.API_KEY || ''; 
+const ai = new GoogleGenAI({ apiKey });
 
 export const generateStrategicInsight = async (
   inputs: CalculatorInputs,
   results: CalculationResult
 ): Promise<string> => {
+  if (!apiKey) {
+    console.warn("Clé API manquante. Assurez-vous d'avoir défini process.env.API_KEY");
+    return "Configuration requise : La clé API n'est pas détectée. Veuillez configurer votre environnement.";
+  }
+
   try {
-    const prompt = `Agis comme un Directeur Stratégie Senior chez McKinsey ou BCG.
+    const prompt = `
+      Agis comme un Directeur Stratégie Senior chez McKinsey ou BCG.
+      
+      CONTEXTE CLIENT :
+      - Secteur : ${inputs.industry}
+      - Effectif : ${inputs.employees} personnes
+      - Gain potentiel identifié : ${results.annualSavings.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} / an
+      - Heures "perdues" récupérables : ${results.totalHoursSaved} h / an
+      
+      OBJECTIF :
+      Génère une analyse stratégique structurée en 3 sections distinctes :
 
-CONTEXTE CLIENT :
-- Secteur : ${inputs.industry}
-- Effectif : ${inputs.employees} personnes
-- Gain potentiel identifié : ${results.annualSavings.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })} / an
-- Heures "perdues" récupérables : ${results.totalHoursSaved} h / an
+      **1. Recommandations Personnalisées**
+      - 3 actions concrètes prioritaires adaptées à ce secteur et cette taille d'entreprise
+      - Sois très spécifique et actionnable
 
-OBJECTIF :
-Génère une analyse stratégique structurée en 3 sections distinctes :
+      **2. Analyse Sectorielle**
+      - Tendances IA spécifiques à ce secteur
+      - Benchmarks de ROI dans l'industrie
+      - Opportunités sectorielles uniques
 
-**1. Recommandations Personnalisées**
-- 3 actions concrètes prioritaires adaptées à ce secteur et cette taille d'entreprise
-- Sois très spécifique et actionnable
+      **3. Points d'Amélioration**
+      - Quick wins (résultats sous 3 mois)
+      - Optimisations moyen terme (3-6 mois)
+      - Transformations long terme (6-12 mois)
 
-**2. Analyse Sectorielle**
-- Tendances IA spécifiques à ce secteur
-- Benchmarks de ROI dans l'industrie
-- Opportunités sectorielles uniques
+      Ton style : Expert mais accessible, data-driven, focus sur l'impact business concret.
+      Format : Markdown avec **gras** pour les titres, tirets pour les listes. Pas de titre global, commence directement par la section 1.
+      Longueur : 300-400 mots maximum.
+    `;
 
-**3. Points d'Amélioration**
-- Quick wins (résultats sous 3 mois)
-- Optimisations moyen terme (3-6 mois)
-- Transformations long terme (6-12 mois)
-
-Ton style : Expert mais accessible, data-driven, focus sur l'impact business concret.
-Format : Markdown avec **gras** pour les titres, tirets pour les listes. Pas de titre global, commence directement par la section 1.
-Longueur : 300-400 mots maximum.`;
-
-    // CORRECTION : /api/gemini au lieu de /api/ai/gemini
-    const response = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: prompt,
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-exp', 
+      contents: prompt,
+      config: {
         temperature: 0.7,
-      }),
+      }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', errorText);
-      throw new Error(`Failed to generate insight: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.text || data.content || "Analyse en cours...";
+    return response.text || "Analyse terminée, mais aucune réponse textuelle générée.";
     
   } catch (error) {
-    console.error("Erreur lors de l'appel à l'AI Gateway:", error);
-    return "L'analyse IA n'est temporairement pas disponible. Veuillez réessayer dans quelques instants.";
+    console.error("Erreur Gemini:", error);
+    return "L'analyse IA n'est pas disponible pour le moment. Vérifiez votre connexion ou votre clé API.";
   }
 };
