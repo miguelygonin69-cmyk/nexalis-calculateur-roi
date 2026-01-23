@@ -28,10 +28,8 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   const renderStructuredAnalysis = (text: string) => {
     if (!text) return null;
     return text.split('\n').map((line, i) => {
-      // On sépare les lignes vides pour l'espacement
       if (line.trim() === '') return <div key={i} className="h-2" />;
       
-      // On gère le gras **
       const parts = line.split('**');
       return (
         <div key={i} className={`mb-1 ${line.trim().startsWith('-') ? 'pl-4 relative' : ''}`}>
@@ -48,15 +46,16 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     setIsGeneratingPdf(true);
     
     const originalElement = document.getElementById('results-container');
-    if (!originalElement) { setIsGeneratingPdf(false); return; }
+    if (!originalElement) { 
+      setIsGeneratingPdf(false); 
+      return; 
+    }
 
     const A4_WIDTH_PX = 794; 
     
-    // SOLUTION PDF ROBUSTE :
-    // 1. On remonte en haut de page pour que le moteur de rendu parte de 0
     window.scrollTo(0, 0);
 
-    // 2. On crée un conteneur ABSOLUTE positionné à 0,0 sur le body.
+    // Conteneur temporaire pour le PDF
     const overlay = document.createElement('div');
     overlay.style.position = 'absolute'; 
     overlay.style.top = '0';
@@ -68,43 +67,47 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     overlay.style.boxSizing = 'border-box';
     overlay.className = 'font-sans text-slate-900'; 
 
-    // 3. Clonage
+    // Clonage
     const clone = originalElement.cloneNode(true) as HTMLElement;
     
-    // Nettoyage et style du clone
+    // Nettoyage
     clone.classList.remove('animate-fade-in');
     clone.style.animation = 'none';
     clone.style.width = '100%';
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
     
-    // CORRECTION LAYOUT : On force la grille 3 colonnes
+    // CORRECTION LAYOUT : Forcer grille 3 colonnes
     const grids = clone.querySelectorAll('.md\\:grid-cols-3');
     grids.forEach(el => {
-      el.classList.remove('md:grid-cols-3', 'grid-cols-1');
-      el.classList.add('grid-cols-3');
+      (el as HTMLElement).classList.remove('md:grid-cols-3', 'grid-cols-1');
+      (el as HTMLElement).classList.add('grid-cols-3');
     });
 
-    // Retrait des éléments inutiles
+    // Retrait toolbar et CTA
     const toolbar = clone.querySelector('#action-toolbar');
     if (toolbar) toolbar.remove();
     const cta = clone.querySelector('#cta-section');
     if (cta) cta.remove();
 
-    // Affichage Header et Update Logo pour PDF
+    // AFFICHER le header (qui est hidden par défaut)
     const header = clone.querySelector('#report-header');
     if (header) {
-      header.classList.remove('hidden');
-      header.classList.add('block');
+      (header as HTMLElement).classList.remove('hidden');
+      (header as HTMLElement).classList.add('block');
+      (header as HTMLElement).style.display = 'block';
     }
 
-    // Gestion de la couleur de texte pour l'impression dans la zone sombre
+    // Conversion zone sombre pour PDF (économie encre)
     const darkBg = clone.querySelector('.bg-brand-dark');
     if (darkBg) {
-        darkBg.classList.remove('text-white');
-        darkBg.classList.add('text-slate-900', 'bg-white', 'border', 'border-gray-200'); // Inversion pour économie d'encre et lisibilité
-        const lightTexts = darkBg.querySelectorAll('.text-gray-100');
-        lightTexts.forEach(t => t.classList.replace('text-gray-100', 'text-slate-700'));
+      (darkBg as HTMLElement).classList.remove('text-white', 'bg-brand-dark');
+      (darkBg as HTMLElement).classList.add('text-slate-900', 'bg-white', 'border', 'border-gray-200');
+      const lightTexts = darkBg.querySelectorAll('.text-gray-100');
+      lightTexts.forEach(t => {
+        (t as HTMLElement).classList.remove('text-gray-100');
+        (t as HTMLElement).classList.add('text-slate-700');
+      });
     }
 
     overlay.appendChild(clone);
@@ -112,35 +115,39 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
 
     // Feedback visuel
     const feedback = document.createElement('div');
-    feedback.innerText = "Génération du rapport PDF...";
-    feedback.style.position = 'fixed';
-    feedback.style.top = '50%';
-    feedback.style.left = '50%';
-    feedback.style.transform = 'translate(-50%, -50%)';
-    feedback.style.background = '#1a365d'; 
-    feedback.style.color = 'white';
-    feedback.style.padding = '16px 32px';
-    feedback.style.borderRadius = '12px';
-    feedback.style.zIndex = '10000';
-    feedback.style.fontWeight = '600';
-    feedback.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+    feedback.innerText = "📄 Génération du rapport PDF en cours...";
+    feedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1a365d;
+      color: white;
+      padding: 20px 40px;
+      border-radius: 12px;
+      z-index: 10001;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    `;
     document.body.appendChild(feedback);
 
-    // Pause pour rendu
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Pause pour permettre le rendu complet
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const opt = {
-      margin: 0,
-      filename: `Nexalis_Audit_ROI_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
+      margin: [10, 10, 10, 10],
+      filename: `Nexalis_Audit_ROI_${inputs.industry}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2, 
         useCORS: true, 
         logging: false,
-        windowWidth: 1200, 
-        width: A4_WIDTH_PX
+        windowWidth: A4_WIDTH_PX,
+        width: A4_WIDTH_PX,
+        backgroundColor: '#ffffff'
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     try {
@@ -148,6 +155,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       await window.html2pdf().set(opt).from(overlay).save();
     } catch (error) {
       console.error("Erreur PDF:", error);
+      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
     } finally {
       if (document.body.contains(overlay)) document.body.removeChild(overlay);
       if (document.body.contains(feedback)) document.body.removeChild(feedback);
