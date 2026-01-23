@@ -34,9 +34,8 @@ Ton style : Expert mais accessible, data-driven, focus sur l'impact business con
 Format : Markdown avec **gras** pour les titres, tirets pour les listes. Pas de titre global, commence directement par la section 1.
 Longueur : 300-400 mots maximum.`;
 
-    // Appel direct à l'API Vercel AI Gateway
-    // Vercel gère automatiquement l'authentification via votre configuration BYOK
-    const response = await fetch('/api/ai/gemini', {
+    // CORRECTION : /api/gemini au lieu de /api/ai/gemini
+    const response = await fetch('/api/gemini', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
