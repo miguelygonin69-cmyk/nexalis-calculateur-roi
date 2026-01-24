@@ -7,8 +7,8 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo Section */}
         <div className="flex items-center gap-3">
-          {/* Logo style "Pépite d'or" sans fond */}
-          <Sparkles className="h-8 w-8 text-yellow-400 fill-yellow-400 drop-shadow-sm" />
+          {/* Logo style "Pépite d'or" sans fond - Couleur Bleu Nuit #1a365d */}
+          <Sparkles className="h-8 w-8 text-[#1a365d] fill-[#1a365d] drop-shadow-sm" />
           <div className="leading-tight">
             <h1 className="text-xl font-bold text-brand-dark tracking-tight uppercase">Acces IA</h1>
             <p className="text-[10px] text-gray-500 font-medium tracking-widest">STRATEGIE & SOLUTIONS</p>

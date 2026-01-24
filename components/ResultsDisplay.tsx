@@ -221,7 +221,8 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       <div id="report-header" className="hidden mb-8 border-b-2 border-brand-dark pb-4 print:block">
         <div className="flex justify-between items-center">
              <div className="flex items-center gap-3">
-                 <Sparkles className="h-6 w-6 text-yellow-400 fill-yellow-400" />
+                 {/* Logo style "Pépite d'or" sans fond - Couleur Bleu Nuit #1a365d */}
+                 <Sparkles className="h-6 w-6 text-[#1a365d] fill-[#1a365d]" />
                  <h1 className="text-2xl font-bold text-brand-dark uppercase">Acces IA</h1>
              </div>
             <span className="text-sm text-gray-500 font-medium">Rapport d'opportunité IA</span>
