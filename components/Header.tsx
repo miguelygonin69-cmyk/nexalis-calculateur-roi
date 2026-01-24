@@ -11,7 +11,7 @@ const Header: React.FC = () => {
           <Sparkles className="h-8 w-8 text-yellow-400 fill-yellow-400 drop-shadow-sm" />
           <div className="leading-tight">
             <h1 className="text-xl font-bold text-brand-dark tracking-tight uppercase">Acces IA</h1>
-            <p className="text-[10px] text-gray-500 font-medium tracking-widest">STRATÉGIE & IA</p>
+            <p className="text-[10px] text-gray-500 font-medium tracking-widest">STRATEGIE & SOLUTIONS</p>
           </div>
         </div>
 
