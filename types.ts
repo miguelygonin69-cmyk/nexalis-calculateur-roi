@@ -29,18 +29,3 @@ export interface ChartDataPoint {
   montant: number;
   fill: string;
 }
-
-export interface StrategicInsight {
-  summary: string;
-  recommendations: {
-    title: string;
-    detail: string;
-    impact: string;
-  }[];
-  sectorTrends: string[];
-  roadmap: {
-    quickWins: string;
-    midTerm: string;
-    longTerm: string;
-  };
-}

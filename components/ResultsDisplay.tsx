@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { CalculationResult, ChartDataPoint, CalculatorInputs, StrategicInsight } from '../types';
+import { CalculationResult, ChartDataPoint, CalculatorInputs } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar, Lightbulb, Rocket, ArrowUpRight, BarChart3 } from 'lucide-react';
+import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar } from 'lucide-react';
 
 interface Props {
   results: CalculationResult;
   chartData: ChartDataPoint[];
-  aiInsight: StrategicInsight | null;
+  aiInsight: string | null;
   isAiLoading: boolean;
   inputs: CalculatorInputs;
 }
@@ -76,13 +76,6 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       (el as HTMLElement).style.gridTemplateColumns = '1fr 1fr 1fr';
       (el as HTMLElement).style.gap = '12px';
     });
-    
-    // Gestion des cartes de recommandation en PDF
-    const recGrid = clone.querySelector('.md\\:grid-cols-2');
-    if (recGrid) {
-        (recGrid as HTMLElement).style.display = 'block'; // Empiler pour le PDF ou garder grid
-        (recGrid as HTMLElement).style.gridTemplateColumns = '1fr 1fr';
-    }
 
     // Retirer éléments non nécessaires
     clone.querySelector('#action-toolbar')?.remove();
@@ -104,18 +97,12 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
        const title = aiSection.querySelector('h3');
        if (title) title.classList.remove('text-brand-accent');
        if (title) title.classList.add('text-brand-dark');
-
-       const badges = aiSection.querySelectorAll('.bg-brand-light\\/10');
-       badges.forEach(b => {
-         (b as HTMLElement).classList.remove('bg-brand-light/10', 'text-brand-accent');
-         (b as HTMLElement).classList.add('bg-gray-100', 'text-brand-dark');
-       });
        
-       const cards = aiSection.querySelectorAll('.bg-white\\/5');
-       cards.forEach(c => {
-         (c as HTMLElement).classList.remove('bg-white/5', 'hover:bg-white/10');
-         (c as HTMLElement).classList.add('bg-gray-50', 'border', 'border-gray-200');
-       });
+       const text = aiSection.querySelector('.whitespace-pre-wrap');
+       if (text) {
+         (text as HTMLElement).classList.remove('text-gray-100');
+         (text as HTMLElement).classList.add('text-slate-800');
+       }
     }
 
     // Réduire taille graphique pour PDF
@@ -200,7 +187,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   };
 
   const handleCopy = () => {
-    const text = `Rapport ROI Acces IA - ${inputs.industry}\nGain estimé: ${formatCurrency(results.annualSavings)}\n\nSynthèse:\n${aiInsight?.summary || 'N/A'}`;
+    const text = `Rapport ROI Acces IA - ${inputs.industry}\nGain estimé: ${formatCurrency(results.annualSavings)}\n\nAnalyse:\n${aiInsight || 'N/A'}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -322,81 +309,10 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
                     </p>
                 </div>
             ) : aiInsight ? (
-                <div className="space-y-8 animate-fade-in">
-                    
-                    {/* Executive Summary */}
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
-                        <p className="text-lg leading-relaxed text-gray-100 font-light italic">
-                            "{aiInsight.summary}"
-                        </p>
+                <div className="prose prose-invert max-w-none">
+                    <div className="whitespace-pre-wrap text-gray-100 font-light leading-relaxed">
+                        {aiInsight}
                     </div>
-
-                    {/* Recommendations Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {aiInsight.recommendations.map((rec, idx) => (
-                            <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition-colors group">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="bg-brand-accent/20 p-2 rounded-lg text-brand-accent group-hover:scale-110 transition-transform">
-                                        {idx === 0 ? <Rocket size={18} /> : idx === 1 ? <Target size={18} /> : <Lightbulb size={18} />}
-                                    </div>
-                                    <h4 className="font-bold text-sm text-gray-100 line-clamp-1" title={rec.title}>{rec.title}</h4>
-                                </div>
-                                <p className="text-xs text-gray-400 mb-3 min-h-[40px] leading-relaxed">{rec.detail}</p>
-                                <div className="flex items-center gap-1 text-xs font-semibold text-brand-accent">
-                                    <ArrowUpRight size={12} />
-                                    <span>Impact: {rec.impact}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Roadmap & Trends */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/10">
-                        {/* Roadmap Column */}
-                        <div className="md:col-span-2 space-y-4">
-                            <h4 className="font-bold text-gray-200 text-sm flex items-center gap-2">
-                                <Calendar size={16} className="text-brand-accent" /> Plan de déploiement
-                            </h4>
-                            <div className="space-y-4">
-                                <div className="flex gap-4">
-                                    <div className="w-12 shrink-0 text-xs font-bold text-brand-accent pt-1">1-3 Mois</div>
-                                    <div className="border-l-2 border-brand-accent/30 pl-4 pb-2">
-                                        <p className="text-sm font-semibold text-white">Quick Wins</p>
-                                        <p className="text-xs text-gray-400">{aiInsight.roadmap.quickWins}</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="w-12 shrink-0 text-xs font-bold text-brand-accent pt-1">3-6 Mois</div>
-                                    <div className="border-l-2 border-brand-accent/30 pl-4 pb-2">
-                                        <p className="text-sm font-semibold text-white">Optimisation</p>
-                                        <p className="text-xs text-gray-400">{aiInsight.roadmap.midTerm}</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="w-12 shrink-0 text-xs font-bold text-brand-accent pt-1">6-12 M</div>
-                                    <div className="border-l-2 border-brand-accent/30 pl-4">
-                                        <p className="text-sm font-semibold text-white">Transformation</p>
-                                        <p className="text-xs text-gray-400">{aiInsight.roadmap.longTerm}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Trends Column */}
-                        <div className="space-y-3">
-                             <h4 className="font-bold text-gray-200 text-sm flex items-center gap-2">
-                                <BarChart3 size={16} className="text-brand-accent" /> Tendances {inputs.industry}
-                            </h4>
-                            <ul className="space-y-2">
-                                {aiInsight.sectorTrends.map((trend, i) => (
-                                    <li key={i} className="text-xs text-gray-400 bg-white/5 rounded-lg p-2 border border-white/5">
-                                        {trend}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-
                 </div>
             ) : (
                 <div className="text-center py-8 text-gray-400 text-sm">
