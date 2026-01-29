@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CalculationResult, ChartDataPoint, CalculatorInputs } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar, ArrowRight } from 'lucide-react';
+import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar } from 'lucide-react';
 
 interface Props {
   results: CalculationResult;
